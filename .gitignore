@@ -21,3 +21,6 @@ captures/
 # Signing files
 *.jks
 *.keystore
+
+# Go server binaries (built separately, see DEVELOPMENT.md)
+app/src/main/jniLibs/**/libseanime.so
