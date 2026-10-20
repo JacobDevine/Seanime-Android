@@ -79,203 +79,29 @@ object Performance {
     // ─────────────────────────────────────────────────────────────────────────
 
     fun injectRuntimeOptimizations(webView: WebView) {
-        injectScrollOptimizations(webView)
-        injectImageLazyLoading(webView)
-        injectMemoryPressureHandler(webView)
-        injectAnimationThrottling(webView)
+        injectReducedMotion(webView)
         injectNetworkHints(webView)
     }
 
-    private fun injectScrollOptimizations(webView: WebView) {
+    // Honour the system "remove animations" setting even where the site's CSS doesn't.
+    private fun injectReducedMotion(webView: WebView) {
         val js = """
         (function() {
-            if (window.__seanime_scroll_observer) {
-                window.__seanime_scroll_observer.disconnect();
-            }
+            var STYLE_ID = '__seanime_reduced_motion';
+            if (document.getElementById(STYLE_ID)) return;
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-            var CSS_SCROLL = [
-                '[data-main-layout-content="true"]',
-                '.overflow-y-auto',
-                '.overflow-x-auto',
-                'body'
-            ];
-            CSS_SCROLL.forEach(function(sel) {
-                document.querySelectorAll(sel).forEach(function(el) {
-                    el.style.willChange = 'scroll-position';
-                });
-            });
-
-            var CSS_PROMOTE = [
-                '[data-media-entry-card-body="true"]',
-                '#__seanime_bottom_nav',
-                '[data-media-page-header-entry-details-cover-image-container="true"]'
-            ];
-
-            function promoteElements(root) {
-                CSS_PROMOTE.forEach(function(sel) {
-                    (root.querySelectorAll ? root.querySelectorAll(sel) : []).forEach(function(el) {
-                        el.style.willChange = 'transform';
-                        el.style.transform  = 'translateZ(0)';
-                    });
-                    if (root.matches && root.matches(sel)) {
-                        root.style.willChange = 'transform';
-                        root.style.transform  = 'translateZ(0)';
-                    }
-                });
-            }
-
-            promoteElements(document);
-
-            var promoObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(m) {
-                    m.addedNodes.forEach(function(node) {
-                        if (node.nodeType !== 1) return;
-                        promoteElements(node);
-                    });
-                });
-            });
-            promoObserver.observe(document.body, { childList: true, subtree: true });
-            window.__seanime_scroll_observer = promoObserver;
-        })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
-    }
-
-    private fun injectImageLazyLoading(webView: WebView) {
-        val js = """
-        (function() {
-            if (window.__seanime_img_observer) {
-                window.__seanime_img_observer.disconnect();
-            }
-
-            function optimiseImages(root) {
-                (root || document).querySelectorAll('img').forEach(function(img) {
-                    if (img.loading === 'eager') return;
-                    if (!img.hasAttribute('loading'))  img.setAttribute('loading',  'lazy');
-                    if (!img.hasAttribute('decoding')) img.setAttribute('decoding', 'async');
-                });
-            }
-
-            optimiseImages(document);
-
-            var imgObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(m) {
-                    m.addedNodes.forEach(function(node) {
-                        if (node.nodeType !== 1) return;
-                        if (node.tagName === 'IMG') optimiseImages(node.parentElement);
-                        else if (node.querySelector) optimiseImages(node);
-                    });
-                });
-            });
-            imgObserver.observe(document.body, { childList: true, subtree: true });
-            window.__seanime_img_observer = imgObserver;
-        })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
-    }
-
-    private fun injectMemoryPressureHandler(webView: WebView) {
-        val js = """
-        (function() {
-            if (window.__seanime_scroll_mem_handler) {
-                window.removeEventListener('scroll', window.__seanime_scroll_mem_handler);
-            }
-
-            var scrollTimer = null;
-            var scrollHandler = function() {
-                document.body.dataset.scrolling = 'true';
-                clearTimeout(scrollTimer);
-                scrollTimer = setTimeout(function() {
-                    delete document.body.dataset.scrolling;
-                }, 150);
-            };
-            window.__seanime_scroll_mem_handler = scrollHandler;
-            window.addEventListener('scroll', scrollHandler, { passive: true });
-
-            window.__seanime_onMemoryPressure = function() {
-                // 1. Release any object-URL blobs still held in memory.
-                document.querySelectorAll('img[src^="blob:"]').forEach(function(img) {
-                    try { URL.revokeObjectURL(img.src); } catch(e) {}
-                });
-                
-                // 2. Fire a custom DOM event so the app's own listeners can react.
-                // The application should listen for 'seanime:memorypressure' to clear its own caches.
-                window.dispatchEvent(new Event('seanime:memorypressure'));
-                console.log('[Seanime] Memory pressure signal received — event dispatched.');
-            };
-        })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
-    }
-
-    private fun injectAnimationThrottling(webView: WebView) {
-        val js = """
-        (function() {
-            var PAUSE_STYLE_ID    = '__seanime_anim_throttle';
-            var REDUCED_STYLE_ID  = '__seanime_reduced_motion';
-            var SCROLL_STYLE_ID   = '__seanime_scroll_throttle';
-
-            if (window.__seanime_vis_handler) {
-                document.removeEventListener('visibilitychange', window.__seanime_vis_handler);
-            }
-
-            function setAnimationState(paused) {
-                var existing = document.getElementById(PAUSE_STYLE_ID);
-                if (paused) {
-                    if (existing) return;
-                    var s = document.createElement('style');
-                    s.id = PAUSE_STYLE_ID;
-                    s.textContent = '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }';
-                    document.head.appendChild(s);
-                } else {
-                    if (existing) existing.remove();
-                }
-            }
-
-            var visHandler = function() { setAnimationState(document.hidden); };
-            window.__seanime_vis_handler = visHandler;
-            document.addEventListener('visibilitychange', visHandler);
-            setAnimationState(document.hidden);
-
-            var existingReduced = document.getElementById(REDUCED_STYLE_ID);
-            if (existingReduced) existingReduced.remove();
-
-            var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-            if (mq.matches) {
-                var sr = document.createElement('style');
-                sr.id = REDUCED_STYLE_ID;
-                sr.textContent = [
-                    '*, *::before, *::after {',
-                    '  animation-duration: 0.01ms !important;',
-                    '  animation-iteration-count: 1 !important;',
-                    '  transition-duration: 0.01ms !important;',
-                    '  scroll-behavior: auto !important;',
-                    '}'
-                ].join('\n');
-                document.head.appendChild(sr);
-            }
-
-            if (window.__seanime_scroll_anim_handler) {
-                window.removeEventListener('scroll', window.__seanime_scroll_anim_handler);
-            }
-
-            var scrollThrottle = null;
-            var scrollAnimHandler = function() {
-                if (!document.getElementById(SCROLL_STYLE_ID)) {
-                    var s2 = document.createElement('style');
-                    s2.id = SCROLL_STYLE_ID;
-                    s2.textContent = '[data-media-entry-card-body="true"] img { transition: none !important; }';
-                    document.head.appendChild(s2);
-                }
-                clearTimeout(scrollThrottle);
-                scrollThrottle = setTimeout(function() {
-                    var el = document.getElementById(SCROLL_STYLE_ID);
-                    if (el) el.remove();
-                    scrollThrottle = null;
-                }, 200);
-            };
-            window.__seanime_scroll_anim_handler = scrollAnimHandler;
-            window.addEventListener('scroll', scrollAnimHandler, { passive: true });
+            var s = document.createElement('style');
+            s.id = STYLE_ID;
+            s.textContent = [
+                '*, *::before, *::after {',
+                '  animation-duration: 0.01ms !important;',
+                '  animation-iteration-count: 1 !important;',
+                '  transition-duration: 0.01ms !important;',
+                '  scroll-behavior: auto !important;',
+                '}'
+            ].join('\n');
+            document.head.appendChild(s);
         })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
@@ -325,22 +151,10 @@ object Performance {
     }
 
     fun onTrimMemory(webView: WebView, level: Int) {
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
-            webView.evaluateJavascript(
-                "if(typeof window.__seanime_onMemoryPressure === 'function') window.__seanime_onMemoryPressure();",
-                null
-            )
-            if (level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
-                webView.clearCache(false)
-            }
-        }
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE) webView.clearCache(false)
     }
 
     fun onLowMemory(webView: WebView) {
-        webView.evaluateJavascript(
-            "if(typeof window.__seanime_onMemoryPressure === 'function') window.__seanime_onMemoryPressure();",
-            null
-        )
         webView.clearCache(false)
     }
 }
