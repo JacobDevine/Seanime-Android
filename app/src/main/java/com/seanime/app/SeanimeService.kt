@@ -15,7 +15,6 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import java.io.File
-import java.io.FileOutputStream
 
 class SeanimeService : Service() {
 
@@ -29,6 +28,7 @@ class SeanimeService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_SERVICE) {
+            sendBroadcast(Intent(ACTION_EXIT).setPackage(packageName))
             stopSelf()
             return START_NOT_STICKY
         }
@@ -38,8 +38,7 @@ class SeanimeService : Service() {
 
         promoteToForeground(lastStatus)
         registerPermissionReceiver()
-        createFakeResolvConf()
-        startBinary()
+        if (!isServerRunning()) startBinary()
 
         return START_STICKY
     }
@@ -59,13 +58,14 @@ class SeanimeService : Service() {
         }
     }
 
-    private fun createFakeResolvConf() {
-        try {
-            val resolvFile = File(filesDir, "resolv.conf")
-            val content = "nameserver 8.8.8.8\nnameserver 1.1.1.1\n"
-            FileOutputStream(resolvFile).use { it.write(content.toByteArray()) }
-        } catch (e: Exception) {
-            Log.e("SeanimeService", "Failed to create resolv.conf", e)
+    // Process.isAlive() needs API 26
+    private fun isServerRunning(): Boolean {
+        val p = process ?: return false
+        return try {
+            p.exitValue()
+            false
+        } catch (e: IllegalThreadStateException) {
+            true
         }
     }
 
@@ -112,7 +112,12 @@ class SeanimeService : Service() {
                 return null
             }
             
-            if (!targetBinary.exists() || sourceBinary.length() != targetBinary.length()) {
+            // Copy again after every install or update, not only when the size changes
+            val installStamp = packageManager.getPackageInfo(packageName, 0).lastUpdateTime.toString()
+            val prefs = getSharedPreferences("seanime_service", MODE_PRIVATE)
+            val isNewInstall = prefs.getString("binary_install_stamp", null) != installStamp
+
+            if (isNewInstall || !targetBinary.exists()) {
                 sourceBinary.copyTo(targetBinary, overwrite = true)
                 try {
                     Runtime.getRuntime().exec(arrayOf("chmod", "755", targetBinary.absolutePath)).waitFor()
@@ -124,13 +129,16 @@ class SeanimeService : Service() {
             val sourceCpp = File(applicationInfo.nativeLibraryDir, "libc++_shared.so")
             if (sourceCpp.exists()) {
                 val targetCpp = File(targetDir, "libc++_shared.so")
-                if (!targetCpp.exists() || sourceCpp.length() != targetCpp.length()) {
+                if (isNewInstall || !targetCpp.exists()) {
                     sourceCpp.copyTo(targetCpp, overwrite = true)
                 }
             }
-            
+
+            prefs.edit().putString("binary_install_stamp", installStamp).apply()
+
             return targetBinary
         } catch (e: Exception) {
+            Log.e("SeanimeService", "Failed to prepare binary", e)
             promoteToForeground("Error: Failed to prepare binary")
             return null
         }
@@ -171,27 +179,35 @@ class SeanimeService : Service() {
             pb.environment().apply {
                 put("LD_LIBRARY_PATH", filesDir.absolutePath)
                 put("GODEBUG", "netdns=cgo")
-                put("RESOLV_CONF", File(filesDir, "resolv.conf").absolutePath)
                 put("HOME", filesDir.absolutePath)
                 put("TMPDIR", cacheDir.absolutePath)
             }
 
-            process = pb.start()
+            val started = pb.start()
+            process = started
 
-            // Read output silently
+            // Forward server output to logcat (tag SeanimeServer)
             Thread {
                 try {
-                    process?.inputStream?.bufferedReader()?.use { reader ->
-                        while (reader.readLine() != null) {
-                            // Do nothing, just consume output
+                    started.inputStream.bufferedReader().use { reader ->
+                        while (true) {
+                            val line = reader.readLine() ?: break
+                            Log.i("SeanimeServer", line)
                         }
                     }
+                    val exitCode = started.waitFor()
+                    // Only report a crash, not a stop from onDestroy
+                    if (process === started) {
+                        Log.w("SeanimeService", "Server exited with code $exitCode")
+                        promoteToForeground("Server stopped (exit code $exitCode)")
+                    }
                 } catch (e: Exception) {
-                    // Ignore
+                    if (process === started) Log.w("SeanimeService", "Server output reader stopped", e)
                 }
             }.start()
 
         } catch (e: Exception) {
+            Log.e("SeanimeService", "Failed to start server", e)
             promoteToForeground("Error: ${e.message?.take(60)}")
         }
     }
@@ -199,8 +215,9 @@ class SeanimeService : Service() {
     override fun onDestroy() {
         permissionReceiver?.let { unregisterReceiver(it) }
         permissionReceiver = null
-        process?.destroy()
+        val running = process
         process = null
+        running?.destroy()
         super.onDestroy()
     }
 
@@ -213,5 +230,6 @@ class SeanimeService : Service() {
 
     companion object {
         const val ACTION_NOTIFICATION_PERMISSION_GRANTED = "com.seanime.app.NOTIFICATION_PERMISSION_GRANTED"
+        const val ACTION_EXIT = "com.seanime.app.EXIT"
     }
 }
