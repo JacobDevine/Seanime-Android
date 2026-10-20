@@ -350,6 +350,20 @@ object UIBottomNav {
                 var LS_FLOAT_HIDDEN  = '__seanime_float_hidden';
                 var LS_FLOAT_ORDER   = '__seanime_float_order';
 
+                // Navigate without reloading the app: click the site's own link for
+                // this path (handled by its router), else fall back to a full load
+                function spaNavigate(href) {
+                    var sel = 'a[href="' + href.replace(/"/g, '\\"') + '"]';
+                    var links = document.querySelectorAll(sel);
+                    for (var i = 0; i < links.length; i++) {
+                        if (!links[i].closest('#__seanime_bottom_nav, #android-floating-menu')) {
+                            links[i].click();
+                            return;
+                        }
+                    }
+                    window.location.href = href;
+                }
+
                 // ─────────────────────────────────────────────────────────────
                 // SVG CONSTANTS — defined once so they are always available
                 // ─────────────────────────────────────────────────────────────
@@ -671,7 +685,7 @@ object UIBottomNav {
                             )) { closeMenu(); return; }
                             closeMenu(function() {
                                 if (item.type === 'link') {
-                                    window.location.href = item.href;
+                                    spaNavigate(item.href);
                                 } else {
                                     var t = document.querySelector('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button="' + item.label.replace(/"/g, '\\"') + '"]');
                                     if (t) t.click();
@@ -1018,8 +1032,9 @@ object UIBottomNav {
 
                             el.addEventListener('click', function(e) {
                                 if (editMode) { e.preventDefault(); e.stopPropagation(); return; }
+                                e.preventDefault();
                                 if (item.sidebarType === 'link' && item.href) {
-                                    window.location.href = item.href;
+                                    spaNavigate(item.href);
                                 } else if (item.sidebarType === 'button') {
                                     var t = document.querySelector('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button="' + item.label.replace(/"/g, '\\"') + '"]');
                                     if (t) t.click();
@@ -1041,7 +1056,9 @@ object UIBottomNav {
                                     if (menuOpen) closeMenu();
                                     return;
                                 }
+                                e.preventDefault();
                                 if (menuOpen) closeMenu();
+                                spaNavigate(item.href);
                             });
                         }
 
