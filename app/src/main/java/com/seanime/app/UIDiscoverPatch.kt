@@ -13,7 +13,6 @@ object UIDiscoverPatch {
     private fun injectDiscoverCardStyles(webView: WebView) {
         val js = """
         (function() {
-            if (!window.location.pathname.startsWith('/discover')) return;
             if (document.getElementById('__seanime_discover_patch_styles')) return;
 
             var s = document.createElement('style');
@@ -22,8 +21,8 @@ object UIDiscoverPatch {
                 @media (max-width: 767px) {
 
                     /* ── Card container ── */
-                    [data-media-entry-card-container="true"][class*="basis-[200px]"],
-                    [data-media-entry-card-container="true"][class*="basis-[250px]"] {
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[200px]"],
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[250px]"] {
                         flex-basis: 160px !important;
                         min-width:  160px !important;
                         max-width:  160px !important;
@@ -32,15 +31,15 @@ object UIDiscoverPatch {
                     }
 
                     /* ── Title text ── */
-                    [data-media-entry-card-container="true"][class*="basis-[200px]"] [data-media-entry-card-title-section-title="true"],
-                    [data-media-entry-card-container="true"][class*="basis-[250px]"] [data-media-entry-card-title-section-title="true"] {
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[200px]"] [data-media-entry-card-title-section-title="true"],
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[250px]"] [data-media-entry-card-title-section-title="true"] {
                         font-size: 0.78rem !important;
                         line-height: 1.3   !important;
                     }
 
                     /* ── Year/season label ── */
-                    [data-media-entry-card-container="true"][class*="basis-[200px]"] [data-media-entry-card-title-section-year-season="true"],
-                    [data-media-entry-card-container="true"][class*="basis-[250px]"] [data-media-entry-card-title-section-year-season="true"] {
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[200px]"] [data-media-entry-card-title-section-year-season="true"],
+                    html[data-seanime-route^="/discover"] [data-media-entry-card-container="true"][class*="basis-[250px]"] [data-media-entry-card-title-section-year-season="true"] {
                         font-size: 0.7rem !important;
                     }
                 }
@@ -56,7 +55,6 @@ object UIDiscoverPatch {
     private fun injectDiscoverCardScript(webView: WebView) {
         val js = """
         (function() {
-            if (!window.location.pathname.startsWith('/discover')) return;
             if (window.__seanime_discover_patch_init) return;
             window.__seanime_discover_patch_init = true;
 
@@ -64,7 +62,8 @@ object UIDiscoverPatch {
             var CARD_WIDTH = '160px';
 
             function isMobile() {
-                return window.innerWidth <= MOBILE_MAX;
+                return window.innerWidth <= MOBILE_MAX &&
+                    window.location.pathname.startsWith('/discover');
             }
 
             function patchElement(el) {
@@ -102,26 +101,25 @@ object UIDiscoverPatch {
             patchAll();
 
             // Watch for skeletons / cards being added dynamically (lazy sections)
-            new MutationObserver(function(mutations) {
+            window.__seanimePage.onDomChange(function(added) {
                 if (!isMobile()) return;
-                mutations.forEach(function(m) {
-                    m.addedNodes.forEach(function(node) {
-                        if (node.nodeType !== 1) return;
-                        // Patch the node itself if it matches
-                        var cls = node.className || '';
-                        if (typeof cls === 'string' &&
-                            (cls.indexOf('basis-[200px]') !== -1 ||
-                             cls.indexOf('basis-[250px]') !== -1)) {
-                            patchElement(node);
-                        }
-                        // Patch any matching descendants
-                        node.querySelectorAll &&
-                        node.querySelectorAll(
-                            '[class*="basis-[200px]"],[class*="basis-[250px]"]'
-                        ).forEach(patchElement);
-                    });
+                added.forEach(function(node) {
+                    // Patch the node itself if it matches
+                    var cls = node.className || '';
+                    if (typeof cls === 'string' &&
+                        (cls.indexOf('basis-[200px]') !== -1 ||
+                         cls.indexOf('basis-[250px]') !== -1)) {
+                        patchElement(node);
+                    }
+                    // Patch any matching descendants
+                    node.querySelectorAll &&
+                    node.querySelectorAll(
+                        '[class*="basis-[200px]"],[class*="basis-[250px]"]'
+                    ).forEach(patchElement);
                 });
-            }).observe(document.body, { childList: true, subtree: true });
+            });
+
+            window.__seanimePage.onRouteChange(patchAll);
 
             // Re-evaluate on resize (e.g. orientation change)
             window.addEventListener('resize', function() {

@@ -823,38 +823,38 @@ object UIBottomNav {
                         }
                     });
                 });
+                var DRAWER_SEL = '[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content';
                 function observeExistingDrawers() {
-                    document.querySelectorAll('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content').forEach(function(el) {
+                    document.querySelectorAll(DRAWER_SEL).forEach(function(el) {
                         drawerAttrObs.observe(el, { attributes: true, attributeFilter: ['data-state'] });
                     });
                 }
-                new MutationObserver(function(mutations) {
+                window.__seanimePage.onDomChange(function(added) {
                     var needsCheck = false;
-                    mutations.forEach(function(m) {
-                        m.addedNodes.forEach(function(node) {
-                            if (node.nodeType !== 1) return;
-                            if (node.hasAttribute('data-vaul-drawer') || node.classList.contains('UI-Drawer__content') || node.classList.contains('UI-Modal__overlay') || node.classList.contains('UI-Modal__content')) {
-                                drawerAttrObs.observe(node, { attributes: true, attributeFilter: ['data-state'] });
-                                needsCheck = true;
-                            }
-                            if (node.querySelectorAll) {
-                                node.querySelectorAll('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content').forEach(function(c) {
-                                    drawerAttrObs.observe(c, { attributes: true, attributeFilter: ['data-state'] });
-                                    needsCheck = true;
-                                });
-                            }
+                    added.forEach(function(node) {
+                        if (node.matches(DRAWER_SEL)) {
+                            drawerAttrObs.observe(node, { attributes: true, attributeFilter: ['data-state'] });
+                            needsCheck = true;
+                        }
+                        node.querySelectorAll(DRAWER_SEL).forEach(function(c) {
+                            drawerAttrObs.observe(c, { attributes: true, attributeFilter: ['data-state'] });
+                            needsCheck = true;
                         });
                     });
                     if (needsCheck) updateNavVisibility();
-                }).observe(document.body, { childList: true, subtree: true });
+                });
                 observeExistingDrawers();
 
+                var waitingForSidebar = false;
                 function waitForReady() {
                     if (document.querySelector('.UI-AppSidebar__sidebar')) { showNav(); return; }
-                    var obs = new MutationObserver(function() {
-                        if (document.querySelector('.UI-AppSidebar__sidebar')) { obs.disconnect(); showNav(); }
+                    if (waitingForSidebar) return;
+                    waitingForSidebar = true;
+                    window.__seanimePage.onDomChange(function() {
+                        if (!waitingForSidebar || !document.querySelector('.UI-AppSidebar__sidebar')) return;
+                        waitingForSidebar = false;
+                        showNav();
                     });
-                    obs.observe(document.body, { childList: true, subtree: true });
                 }
                 function updateActiveState() {
                     var nav = document.getElementById('__seanime_bottom_nav');
@@ -1561,14 +1561,19 @@ object UIBottomNav {
                     }, 150);
                 });
 
-                var _push = history.pushState.bind(history);
-                history.pushState = function() { _push.apply(history, arguments); setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); };
-                var _replace = history.replaceState.bind(history);
-                history.replaceState = function() { _replace.apply(history, arguments); setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); };
-                window.addEventListener('popstate', function() { setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); });
+                window.__seanimePage.onRouteChange(function() {
+                    setTimeout(function() { updateActiveState(); updateNavVisibility(); }, 50);
+                });
 
                 var navVisThrottle = null;
-                new MutationObserver(function() {
+                var wrenchPending = true;
+                function syncWrench() {
+                    if (!wrenchPending || !document.querySelector('.UI-AppSidebar__sidebar')) return;
+                    wrenchPending = false;
+                    if (menuOpen || editMode) showWrench(); else hideWrench();
+                }
+                window.__seanimePage.onDomChange(function() {
+                    syncWrench();
                     if (isTablet()) return;
                     if (!document.getElementById('__seanime_bottom_nav')) {
                         menuBtn = null;
@@ -1577,13 +1582,8 @@ object UIBottomNav {
                         if (navVisThrottle) return;
                         navVisThrottle = setTimeout(function() { navVisThrottle = null; updateNavVisibility(); }, 200);
                     }
-                }).observe(document.body, { childList: true, subtree: true });
-
-                var wrenchObs = new MutationObserver(function() {
-                    if (document.querySelector('.UI-AppSidebar__sidebar')) { wrenchObs.disconnect(); if (menuOpen || editMode) showWrench(); else hideWrench(); }
                 });
-                wrenchObs.observe(document.body, { childList: true, subtree: true });
-                if (document.querySelector('.UI-AppSidebar__sidebar')) { if (menuOpen || editMode) showWrench(); else hideWrench(); }
+                syncWrench();
             }
         })();
         """.trimIndent()

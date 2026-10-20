@@ -329,6 +329,7 @@ class MainActivity : Activity() {
                 if (view != null) retryCountMap[view] = 0
                 if (serverReady) loadingView.visibility = View.GONE
 
+                PageEvents.inject(webView)
                 Performance.injectRuntimeOptimizations(webView)
                 pipManager.injectHijacker()
                 DualModeManager.inject(webView)

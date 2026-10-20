@@ -126,7 +126,7 @@ object AppUpdater {
                 }
 
                 scanButtons();
-                new MutationObserver(scanButtons).observe(document.body, { childList: true, subtree: true });
+                window.__seanimePage.onDomChange(function(added) { if (added.length) scanButtons(); });
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)

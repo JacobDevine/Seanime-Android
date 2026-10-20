@@ -308,13 +308,8 @@ object VideoControlInjector {
                 setTimeout(patchPlayer, 500);
             }
 
-            var _pushState = history.pushState.bind(history);
-            history.pushState = function() { _pushState.apply(history, arguments); onRouteChange(); };
-            var _replaceState = history.replaceState.bind(history);
-            history.replaceState = function() { _replaceState.apply(history, arguments); onRouteChange(); };
-            window.addEventListener('popstate', onRouteChange);
-
-            new MutationObserver(patchPlayer).observe(document.body, { childList: true, subtree: true });
+            window.__seanimePage.onRouteChange(onRouteChange);
+            window.__seanimePage.onDomChange(patchPlayer);
             patchPlayer();
         })();
         """.trimIndent()

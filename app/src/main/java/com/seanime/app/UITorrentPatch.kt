@@ -318,20 +318,15 @@ object UITorrentPatch {
             patchAll();
 
             // ── Watch for new cards (SPA navigation / lazy rendering) ─────────
-            new MutationObserver(function(mutations) {
-                var found = false;
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType !== 1) return;
-                        if (node.dataset && node.dataset.torrentPreviewItem === 'true') {
-                            patchCard(node);
-                        } else if (node.querySelectorAll) {
-                            var cards = node.querySelectorAll('[data-torrent-preview-item="true"]');
-                            if (cards.length) { cards.forEach(patchCard); found = true; }
-                        }
-                    });
+            window.__seanimePage.onDomChange(function(added) {
+                added.forEach(function(node) {
+                    if (node.dataset && node.dataset.torrentPreviewItem === 'true') {
+                        patchCard(node);
+                    } else if (node.querySelectorAll) {
+                        node.querySelectorAll('[data-torrent-preview-item="true"]').forEach(patchCard);
+                    }
                 });
-            }).observe(document.body, { childList: true, subtree: true });
+            });
 
         })();
         """.trimIndent()
