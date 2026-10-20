@@ -136,6 +136,18 @@ class SeanimeService : Service() {
         }
     }
 
+    // EI_CLASS byte of the ELF header: 1 = 32-bit, 2 = 64-bit
+    private fun is64BitElf(file: File): Boolean {
+        return try {
+            file.inputStream().use { input ->
+                val header = ByteArray(5)
+                input.read(header) == 5 && header[4].toInt() == 2
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun startBinary() {
         try {
             val binaryPath = prepareBinary()
@@ -151,7 +163,7 @@ class SeanimeService : Service() {
 
             promoteToForeground("Server is running")
 
-            val linker = "/system/bin/linker"
+            val linker = if (is64BitElf(binaryPath)) "/system/bin/linker64" else "/system/bin/linker"
             val pb = ProcessBuilder(linker, binaryPath.absolutePath, "--datadir", filesDir.absolutePath)
                 .directory(filesDir)
                 .redirectErrorStream(true)

@@ -14,9 +14,15 @@ android {
         targetSdk = 30
         versionCode = 7
         versionName = "0.7.0a"
+        manifestPlaceholders["appLabel"] = "Seanime"
     }
 
     buildTypes {
+        debug {
+            // Installs next to the release app so testing doesn't touch its data
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] = "Seanime Debug"
+        }
         release {
             isMinifyEnabled = false
             // Signing config for releases is set up separately (see DEVELOPMENT.md).

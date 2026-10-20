@@ -169,7 +169,15 @@ To build for other architectures, change `GOARCH` and place the binary in the co
 | ARM 32-bit | `arm` + `GOARM=7` | `jniLibs/armeabi-v7a/` |
 
 > [!IMPORTANT]
-> Building for ARM 32-bit requires `CGO_ENABLED=1`
+> Building for ARM 32-bit requires `CGO_ENABLED=1` and the Android NDK's C **and** C++ compilers (`go-libutp` is C++):
+>
+> ```bash
+> NDK=~/Android/Sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64
+> CC=$NDK/bin/armv7a-linux-androideabi21-clang CXX=$NDK/bin/armv7a-linux-androideabi21-clang++ \
+>   GOOS=android GOARCH=arm GOARM=7 CGO_ENABLED=1 go build -tags android -trimpath -ldflags="-s -w" -o seanime-server .
+> ```
+>
+> The resulting binary depends on `libc++_shared.so`, which is committed in `jniLibs/armeabi-v7a/` (copied from `$NDK/sysroot/usr/lib/arm-linux-androideabi/`). Update it if you build with a different NDK version.
 
 Gradle will automatically bundle the right binary for each device at install time.
 
