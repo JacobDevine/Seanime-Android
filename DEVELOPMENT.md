@@ -157,7 +157,7 @@ go mod tidy
 GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build -tags android -ldflags="-s -w" -o seanime-server .
 ```
 
-Then after building the binary rename it to `libseanime.so` and place it in the correct JNI folder in the `seanime-android` repo.
+Then after building the binary rename it to `libseanime.so` and place it in the correct folder under `app/src/main/jniLibs/` in this repo.
 
 #### Multi-Architecture Support
 
@@ -175,7 +175,22 @@ Gradle will automatically bundle the right binary for each device at install tim
 
 ### 5. Build the APK
 
-Open the project in **Android Studio** or **CodeAssist** (on-device) and build from there. Manual Gradle builds are possible but brittle and not recommended.
+Requirements: JDK 17+ and the Android SDK (API 36). Create a `local.properties` file in the repo root pointing at your SDK, e.g. `sdk.dir=/home/you/Android/Sdk` (Android Studio does this for you).
+
+```bash
+./gradlew assembleDebug
+```
+
+The APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Install it on a connected device with:
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+You can also open the project in **Android Studio** and build from there.
+
+> [!NOTE]
+> `libseanime.so` is not committed to the repo (it's ~80MB). Build it as described above, or extract it from a previous release APK (`unzip -j app.apk 'lib/arm64-v8a/libseanime.so' -d app/src/main/jniLibs/arm64-v8a/`).
 
 ---
 
