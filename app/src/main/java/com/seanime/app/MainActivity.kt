@@ -2,20 +2,30 @@ package com.seanime.app
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.*
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
+import java.net.HttpURLConnection
 import java.net.URISyntaxException
+import java.net.URL
 
 class MainActivity : Activity() {
 
@@ -29,6 +39,18 @@ class MainActivity : Activity() {
     private val REQUEST_CODE_NOTIFICATIONS = 101
 
     private val LOCAL_HOST = "127.0.0.1"
+    private val HOME_URL = "http://127.0.0.1:43211"
+    private val STATUS_URL = "$HOME_URL/api/v1/status"
+    private val SERVER_START_TIMEOUT_MS = 90_000L
+
+    private lateinit var loadingView: LinearLayout
+    private lateinit var loadingText: TextView
+    private lateinit var loadingSpinner: ProgressBar
+    private lateinit var retryButton: Button
+    @Volatile private var destroyed = false
+    private var serverReady = false
+    private var pendingUrl: String? = null
+    private var exitReceiver: BroadcastReceiver? = null
 
     inner class OrientationBridge {
         @JavascriptInterface
@@ -65,11 +87,110 @@ class MainActivity : Activity() {
         }
 
         setupWebView()
+        registerExitReceiver()
         startSeanimeService()
         setSystemBarsHidden(true)
 
         // --- ADDED: Handle deep link if app was closed ---
         handleWidgetIntent(intent)
+        waitForServer()
+    }
+
+    // The notification's Exit stops the server, so close the app with it
+    private fun registerExitReceiver() {
+        exitReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                finishAndRemoveTask()
+            }
+        }
+        val filter = IntentFilter(SeanimeService.ACTION_EXIT)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(exitReceiver, filter, 0x4)
+        } else {
+            registerReceiver(exitReceiver, filter)
+        }
+    }
+
+    override fun onDestroy() {
+        destroyed = true
+        exitReceiver?.let { unregisterReceiver(it) }
+        exitReceiver = null
+        super.onDestroy()
+    }
+
+    // Poll the status endpoint and load the UI once the server answers,
+    // instead of guessing how long startup takes
+    private fun waitForServer() {
+        loadingView.visibility = View.VISIBLE
+        loadingSpinner.visibility = View.VISIBLE
+        retryButton.visibility = View.GONE
+        loadingText.text = "Starting Seanime…"
+
+        Thread {
+            val deadline = System.currentTimeMillis() + SERVER_START_TIMEOUT_MS
+            var ready = false
+            while (!destroyed && System.currentTimeMillis() < deadline) {
+                if (isServerUp()) {
+                    ready = true
+                    break
+                }
+                Thread.sleep(250)
+            }
+            if (destroyed) return@Thread
+            runOnUiThread {
+                if (ready) {
+                    serverReady = true
+                    webView.loadUrl(pendingUrl ?: HOME_URL)
+                    pendingUrl = null
+                } else {
+                    loadingSpinner.visibility = View.GONE
+                    loadingText.text = "The Seanime server didn't start."
+                    retryButton.visibility = View.VISIBLE
+                }
+            }
+        }.start()
+    }
+
+    private fun isServerUp(): Boolean {
+        return try {
+            val conn = URL(STATUS_URL).openConnection() as HttpURLConnection
+            conn.connectTimeout = 1000
+            conn.readTimeout = 2000
+            try {
+                conn.responseCode == 200
+            } finally {
+                conn.disconnect()
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun buildLoadingView(): LinearLayout {
+        val density = resources.displayMetrics.density
+        loadingSpinner = ProgressBar(this)
+        loadingText = TextView(this).apply {
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setPadding(0, (16 * density).toInt(), 0, (16 * density).toInt())
+        }
+        retryButton = Button(this).apply {
+            text = "Retry"
+            setOnClickListener {
+                startSeanimeService()
+                waitForServer()
+            }
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(android.graphics.Color.BLACK)
+            isClickable = true
+            addView(loadingSpinner)
+            addView(loadingText)
+            addView(retryButton)
+        }
     }
 
     // --- ADDED: Handle deep link if app was already in background ---
@@ -85,10 +206,9 @@ class MainActivity : Activity() {
         if (data != null && data.scheme == "seanime" && data.host == "entry") {
             val animeId = data.getQueryParameter("id")
             if (animeId != null) {
-                // Navigate the WebView to the specific entry page
-                webView.postDelayed({
-                    webView.loadUrl("http://127.0.0.1:43211/entry?id=$animeId")
-                }, 500) // Small delay to ensure WebView is ready
+                // Navigate the WebView to the specific entry page, or once the server is up
+                val url = "$HOME_URL/entry?id=$animeId"
+                if (serverReady) webView.loadUrl(url) else pendingUrl = url
             }
         }
     }
@@ -120,7 +240,11 @@ class MainActivity : Activity() {
 
     private fun setupWebView() {
         webView = WebView(this)
-        setContentView(webView)
+        loadingView = buildLoadingView()
+        val root = FrameLayout(this)
+        root.addView(webView, FrameLayout.LayoutParams(-1, -1))
+        root.addView(loadingView, FrameLayout.LayoutParams(-1, -1))
+        setContentView(root)
 
         Performance.init(this, webView)
 
@@ -203,13 +327,13 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 if (view != null) retryCountMap[view] = 0
+                if (serverReady) loadingView.visibility = View.GONE
 
                 Performance.injectRuntimeOptimizations(webView)
                 pipManager.injectHijacker()
                 DualModeManager.inject(webView)
                 VideoControlInjector.inject(webView)
                 UIPatches.inject(webView)
-                UIBottomNav.inject(webView)
                 AppUpdater.inject(webView)
             }
         }
@@ -236,13 +360,6 @@ class MainActivity : Activity() {
                 webView.visibility = View.VISIBLE
                 setSystemBarsHidden(true)
             }
-        }
-
-        // Only load the home page if there isn't a deep link intent pending
-        if (intent?.data == null) {
-            webView.postDelayed({
-                webView.loadUrl("http://127.0.0.1:43211")
-            }, 1000)
         }
     }
 
