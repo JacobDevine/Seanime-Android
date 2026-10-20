@@ -202,6 +202,26 @@ You can also open the project in **Android Studio** and build from there.
 
 ---
 
+## Releasing
+
+Release APKs are signed with the maintainer's key, which is kept outside the repo. Gradle reads it from `~/.gradle/gradle.properties`:
+
+```properties
+seanimeReleaseStoreFile=/path/to/seanime-release.jks
+seanimeReleaseStorePassword=...
+seanimeReleaseKeyAlias=seanime
+seanimeReleaseKeyPassword=...
+```
+
+Without these, `./gradlew assembleRelease` produces an unsigned APK.
+
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
+2. Build both server binaries (see above) and run `./gradlew clean assembleRelease`.
+3. Rename `app/build/outputs/apk/release/app-release.apk` to `seanime_v<app version>-s<server version>.apk`, e.g. `seanime_v0.7.0a-s3.10.4.apk`. The in-app updater reads the server version from the `-s` part of the file name.
+4. Publish it as a GitHub release tagged `v<app version>`.
+
+---
+
 ## Permissions
 
 | Permission | Reason |
