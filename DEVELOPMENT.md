@@ -29,6 +29,10 @@ A cursed but functional Android port of Seanime. The app runs the full Seanime G
 
 The Go binary is compiled for Android and placed in `app/src/main/jniLibs/` as `libseanime.so`. Android extracts it at install time, the foreground service runs it directly, and the app opens a WebView pointed at `localhost:43211`.
 
+### Web UI patches
+
+The mobile layout comes from JS and CSS files in `app/src/main/assets/patches/`. `WebPatches.kt` runs them, in the order listed there, each time a page finishes loading; a `.css` file is added as a `<style>` element. Clicking around the web UI doesn't reload the page, so patches use the helpers from `page-events.js` (`__seanimePage.onDomChange` / `onRouteChange`) and scope page-specific CSS with `html[data-seanime-route^="/path"]`. To add a patch, create the file and add its name to the list in `WebPatches.kt`.
+
 ---
 
 ## Building the binary

@@ -1,0 +1,293 @@
+[data-main-layout-content="true"] {
+    padding-bottom: 4.5rem !important;
+}
+
+#__seanime_bottom_nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9000;
+    height: 4rem;
+    display: flex;
+    align-items: stretch;
+    background: rgba(10, 10, 15, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+#__seanime_bottom_nav.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+#__seanime_bottom_nav a,
+#__seanime_bottom_nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.22rem;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.38);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+#__seanime_bottom_nav a svg,
+#__seanime_bottom_nav button svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+#__seanime_bottom_nav a:active,
+#__seanime_bottom_nav button:active {
+    color: rgba(255,255,255,0.7);
+}
+#__seanime_bottom_nav button[data-menu-open="true"] {
+    color: white;
+}
+
+/* ── Drag handle on nav items ── */
+.seanime-nav-drag-handle {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    line-height: 1;
+    cursor: grab;
+    z-index: 10;
+    pointer-events: auto;
+    touch-action: none;
+}
+.seanime-edit-mode .seanime-nav-drag-handle {
+    display: flex;
+}
+
+/* ── Nav drop target highlight ── */
+#__seanime_bottom_nav a.seanime-drop-target,
+#__seanime_bottom_nav button.seanime-drop-target {
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+/* ── Floating menu ── */
+#android-floating-menu {
+    bottom: 4.5rem !important;
+    right: 1.25rem !important;
+}
+
+/* ── Wrench button ── */
+#__seanime_wrench_btn {
+    position: fixed;
+    z-index: 9100;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(20,20,28,0.92);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    transition: color 0.15s, background 0.15s, border-color 0.15s, opacity 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    opacity: 0;
+    pointer-events: none;
+    left: 1.25rem;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+#__seanime_wrench_btn.wrench-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+#__seanime_wrench_btn.wrench-hidden-for-menu {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+#__seanime_wrench_btn.wrench-active {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+}
+
+/* ── Reset button ── */
+#__seanime_reset_btn {
+    position: fixed;
+    z-index: 9100;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: rgba(20,20,28,0.92);
+    border: 1px solid rgba(239,68,68,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(239,68,68,0.95);
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+    transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.2,0.9,0.2,1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    opacity: 0;
+    pointer-events: none;
+    left: 1.25rem;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    transform: translate(-14px, 14px) scale(0.95);
+}
+#__seanime_reset_btn.reset-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(44px, -44px) scale(1);
+}
+#__seanime_reset_btn.reset-hidden-for-menu {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ── Reset dialog ── */
+#__seanime_reset_dialog_overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+#__seanime_reset_dialog_overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+#__seanime_reset_dialog {
+    width: min(360px, 92vw);
+    border-radius: 14px;
+    background: rgba(20,20,28,0.96);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.65);
+    padding: 14px 14px 12px 14px;
+    transform: translateY(8px) scale(0.98);
+    transition: transform 0.18s ease;
+}
+#__seanime_reset_dialog_overlay.visible #__seanime_reset_dialog {
+    transform: translateY(0) scale(1);
+}
+#__seanime_reset_dialog_title {
+    color: rgba(255,255,255,0.92);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.01em;
+}
+#__seanime_reset_dialog_desc {
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0 0 12px 0;
+    line-height: 1.35;
+}
+#__seanime_reset_dialog_actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+.__seanime_dialog_btn {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.9);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.__seanime_dialog_btn:active {
+    background: rgba(255,255,255,0.1);
+}
+.__seanime_dialog_btn_danger {
+    border-color: rgba(239,68,68,0.45);
+    background: rgba(239,68,68,0.14);
+    color: rgba(255,255,255,0.95);
+}
+.__seanime_dialog_btn_danger:active {
+    background: rgba(239,68,68,0.22);
+}
+
+/* ── Float drag handle ── */
+.float-drag-handle {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 10px;
+    line-height: 1;
+    cursor: grab;
+    z-index: 10;
+    pointer-events: auto;
+    touch-action: none;
+}
+.seanime-edit-mode .float-drag-handle {
+    display: flex;
+}
+
+/* ── Float drop target highlight ── */
+.float-nav-item.seanime-float-drop-target .float-nav-icon {
+    background: rgba(255,255,255,0.2) !important;
+    border-color: rgba(255,255,255,0.4) !important;
+}
+
+/* ── Float hidden state ── */
+.float-nav-item[data-hidden="true"] .float-nav-icon {
+    opacity: 0.3;
+}
+
+/* ── Drag ghost clone ── */
+.seanime-drag-ghost {
+    position: fixed;
+    z-index: 99999;
+    pointer-events: none;
+    opacity: 0.85;
+    transform: scale(1.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}

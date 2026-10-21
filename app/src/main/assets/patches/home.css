@@ -1,0 +1,79 @@
+/* ── Global layout constraints & Top Spacing ── */
+html, body {
+    overflow-x: hidden !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+}
+
+[data-page-wrapper="true"] {
+    padding-top: 1.5rem !important;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    display: block !important;
+}
+
+/* ── Banner: shrink on mobile ── */
+[data-library-header-container="true"] {
+    height: 14rem !important;
+}
+[data-library-header-banner-bottom-gradient="true"] {
+    height: 8rem !important;
+}
+[data-layout-header-background-gradient="true"] {
+    height: 4rem !important;
+}
+[data-library-toolbar-top-padding="true"].h-28 {
+    height: 4rem !important;
+}
+
+/* ── Top navbar ── */
+[data-top-menu="true"], [data-top-navbar-content-separator="true"] {
+    display: none !important;
+}
+
+/* ── Carousel / Grid fix for Horizontal Scrolling ── */
+[data-library-collection-list-item-media-card-lazy-grid] {
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+    overflow: hidden !important;
+}
+
+[data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-card-grid="true"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 0.65rem !important;
+    padding: 0.5rem 1rem 1.5rem 1rem !important;
+    width: auto !important;
+    max-width: 100% !important;
+    scrollbar-width: none !important;
+}
+
+[data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-card-grid="true"]::-webkit-scrollbar {
+    display: none !important;
+}
+
+[data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-entry-card-container="true"] {
+    flex: 0 0 auto !important;
+    width: 135px !important;
+    scroll-snap-align: start !important;
+}
+
+/* ── Card UI tweaks ── */
+[data-episode-card-subtitle="true"] { font-size: 0.78rem !important; }
+[data-episode-card-title="true"] { font-size: 0.92rem !important; width: 100% !important; }
+[data-media-card-grid="true"] { gap: 0.65rem !important; }
+[data-media-entry-card-title-section-title="true"] { font-size: 0.78rem !important; }
+
+/* ── Genre tabs ── */
+.UI-StaticTabs__trigger {
+    height: 2.2rem !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.82rem !important;
+}
