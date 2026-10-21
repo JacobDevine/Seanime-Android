@@ -44,6 +44,9 @@ object UISettingsPatch {
     private fun injectSettingsMenuFix(webView: WebView) {
         val js = """
             (function() {
+                if (window.__seanime_settings_menu_init) return;
+                window.__seanime_settings_menu_init = true;
+
                 function ensureDonateHideStyle() {
                     if (document.getElementById('__seanime_donate_hide')) return;
                     var style = document.createElement('style');
@@ -53,9 +56,14 @@ object UISettingsPatch {
                 }
                 ensureDonateHideStyle();
 
-                function tagDonateButtons() {
+                function tagDonateButtons(roots) {
                     var ourDrawer = document.getElementById('__seanime_drawer');
-                    document.querySelectorAll('button.UI-Button_root, button').forEach(function(btn) {
+                    var buttons = [];
+                    roots.forEach(function(root) {
+                        if (root.tagName === 'BUTTON') buttons.push(root);
+                        if (root.querySelectorAll) buttons.push.apply(buttons, root.querySelectorAll('button'));
+                    });
+                    buttons.forEach(function(btn) {
                         if (ourDrawer && ourDrawer.contains(btn)) return;
                         if (btn.dataset.seanimeOwned === 'true') return;
                         var isDonate = btn.textContent.trim() === 'Donate' ||
@@ -240,7 +248,7 @@ object UISettingsPatch {
                     // ----------------------------------------------------------------
 
                     document.body.appendChild(drawer);
-                    tagDonateButtons();
+                    tagDonateButtons([document]);
 
                     var drawerW = Math.min(window.innerWidth * 0.75, 300);
                     var isOpen = false;
@@ -290,23 +298,17 @@ object UISettingsPatch {
                     document.body.appendChild(tab);
                 }
 
+                tagDonateButtons([document]);
                 buildDrawer();
 
-                var observer = new MutationObserver(function(mutations) {
-                    var added = mutations.some(function(m) { return m.addedNodes.length > 0; });
-                    if (added) { tagDonateButtons(); buildDrawer(); }
+                window.__seanimePage.onDomChange(function(added) {
+                    if (added.length) { tagDonateButtons(added); buildDrawer(); }
                 });
-                observer.observe(document.body, { childList: true, subtree: true });
 
-                var lastHref = window.location.href;
-                setInterval(function() {
-                    if (window.location.href !== lastHref) {
-                        lastHref = window.location.href;
-                        cleanupDrawer();
-                        setTimeout(buildDrawer, 400);
-                        setTimeout(buildDrawer, 900);
-                    }
-                }, 300);
+                window.__seanimePage.onRouteChange(function() {
+                    cleanupDrawer();
+                    setTimeout(buildDrawer, 400);
+                });
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
@@ -325,6 +327,9 @@ object UISettingsPatch {
     private fun injectSettingsActionBar(webView: WebView) {
         val js = """
             (function() {
+                if (window.__seanime_settings_bar_init) return;
+                window.__seanime_settings_bar_init = true;
+
                 var TABLET_BP  = 768;
                 var BAR_ID     = '__seanime_settings_float_bar';
                 var HIDE_STYLE = '__seanime_action_bar_hide';
@@ -467,25 +472,8 @@ object UISettingsPatch {
 
                 sync();
 
-                var syncTimer = null;
-                new MutationObserver(function() {
-                    if (syncTimer) return;
-                    syncTimer = setTimeout(function() {
-                        syncTimer = null;
-                        sync();
-                    }, 80);
-                }).observe(document.body, { childList: true, subtree: true });
-
-                var lastHref = window.location.href;
-                setInterval(function() {
-                    if (window.location.href !== lastHref) {
-                        lastHref = window.location.href;
-                        sync();
-                        setTimeout(sync, 400);
-                        setTimeout(sync, 900);
-                    }
-                }, 300);
-
+                window.__seanimePage.onDomChange(sync);
+                window.__seanimePage.onRouteChange(sync);
                 window.addEventListener('resize', sync);
             })();
         """.trimIndent()

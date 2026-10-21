@@ -66,8 +66,9 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                     });
                 }
 
-                const observer = new MutationObserver(() => hijackVideoControls());
-                observer.observe(document.body, { childList: true, subtree: true });
+                if (window.__seanimePiPHijackerInit) return;
+                window.__seanimePiPHijackerInit = true;
+                window.__seanimePage.onDomChange(hijackVideoControls);
                 hijackVideoControls();
             })();
         """.trimIndent()

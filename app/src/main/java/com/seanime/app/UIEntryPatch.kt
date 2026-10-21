@@ -153,8 +153,12 @@ object UIEntryPatch {
                     });
                 }
 
+                // Runs 1s after the page last changed, so the header has settled.
+                var applyTimer = null;
                 function applyAll() {
-                    setTimeout(function() {
+                    if (applyTimer) return;
+                    applyTimer = setTimeout(function() {
+                        applyTimer = null;
                         injectCharacterStyles();
                         if (isEntryPage()) {
                             carouselizeGrids();
@@ -165,21 +169,10 @@ object UIEntryPatch {
 
                 applyAll();
 
-                var observer = new MutationObserver(function(mutations) {
-                    var relevant = mutations.some(function(m) { return m.addedNodes.length > 0; });
-                    if (relevant) applyAll();
+                window.__seanimePage.onDomChange(function(added) {
+                    if (added.length && isEntryPage()) applyAll();
                 });
-                observer.observe(document.body, { childList: true, subtree: true });
-
-                var lastHref = window.location.href;
-                setInterval(function() {
-                    if (window.location.href !== lastHref) {
-                        lastHref = window.location.href;
-                        setTimeout(applyAll, 300);
-                        setTimeout(applyAll, 800);
-                        setTimeout(applyAll, 1500);
-                    }
-                }, 300);
+                window.__seanimePage.onRouteChange(applyAll);
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
@@ -479,30 +472,23 @@ object UIEntryPatch {
                 injectMoreInfoStyles();
                 buildMoreInfoWidget();
 
-                var observer = new MutationObserver(function(mutations) {
-                    var added = mutations.some(function(m) { return m.addedNodes.length > 0; });
-                    if (added && isEntryPage()) buildMoreInfoWidget();
-                });
-                observer.observe(document.body, { childList: true, subtree: true });
+                // After a route change the old entry's header can still be on screen,
+                // so wait a moment before building the panel from it.
+                var settling = false;
 
-                var lastHref = window.location.href;
-                setInterval(function() {
-                    if (window.location.href !== lastHref) {
-                        lastHref = window.location.href;
-                        ['__seanime_moreinfo_wrapper', '__seanime_moreinfo_styles'].forEach(function(id) {
-                            var el = document.getElementById(id);
-                            if (el) el.remove();
-                        });
-                        window.__seanime_moreinfo_init = false;
-                        setTimeout(function() {
-                            window.__seanime_moreinfo_init = true;
-                            injectMoreInfoStyles();
-                            buildMoreInfoWidget();
-                        }, 400);
-                        setTimeout(buildMoreInfoWidget, 900);
-                        setTimeout(buildMoreInfoWidget, 1500);
-                    }
-                }, 300);
+                window.__seanimePage.onDomChange(function(added) {
+                    if (added.length && !settling && isEntryPage()) buildMoreInfoWidget();
+                });
+
+                window.__seanimePage.onRouteChange(function() {
+                    var wrapper = document.getElementById('__seanime_moreinfo_wrapper');
+                    if (wrapper) wrapper.remove();
+                    settling = true;
+                    setTimeout(function() {
+                        settling = false;
+                        buildMoreInfoWidget();
+                    }, 400);
+                });
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)

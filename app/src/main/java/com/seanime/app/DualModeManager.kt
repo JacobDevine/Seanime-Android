@@ -46,12 +46,18 @@ object DualModeManager {
                     }
                 }
 
+                let dualActive = false;
+
                 function applyDualMode() {
+                    if (dualActive) return;
+                    dualActive = true;
                     document.body.classList.add('seanime-dual-mode-active');
                     toggleLandscape(true);
                 }
 
                 function removeDualMode() {
+                    if (!dualActive) return;
+                    dualActive = false;
                     document.body.classList.remove('seanime-dual-mode-active');
                     toggleLandscape(false);
                 }
@@ -89,7 +95,7 @@ object DualModeManager {
                     });
                 }
 
-                const observer = new MutationObserver(() => {
+                window.__seanimePage.onDomChange(() => {
                     setupUI();
                     const pages = document.querySelectorAll('div[data-chapter-page-container="true"]');
                     const isDual = localStorage.getItem('customDualMode') === 'true';
@@ -100,8 +106,6 @@ object DualModeManager {
                         removeDualMode();
                     }
                 });
-
-                observer.observe(document.body, { childList: true, subtree: true });
             })();
         """.trimIndent()
         view.evaluateJavascript(js, null)
