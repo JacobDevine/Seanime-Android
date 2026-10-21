@@ -1,0 +1,27 @@
+/* Double-page manga reader; dual-mode.js toggles the class on <body>. */
+.seanime-dual-mode-active [data-chapter-vertical-reader-inner-container="true"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    direction: rtl !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+}
+.seanime-dual-mode-active [data-chapter-vertical-reader-inner-container="true"] > * {
+    direction: ltr !important;
+    margin: 0 !important;
+}
+.seanime-dual-mode-active [data-chapter-page-container="true"] {
+    height: 100vh !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+.seanime-dual-mode-active [data-chapter-page-container="true"] img {
+    max-height: 100vh !important;
+    width: auto !important;
+    object-fit: contain !important;
+}
+.seanime-dual-mode-active [data-chapter-vertical-reader-inner-container-spacer="true"] {
+    display: none !important;
+}
+
