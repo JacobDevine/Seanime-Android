@@ -77,3 +77,21 @@ html, body {
     padding: 0 0.85rem !important;
     font-size: 0.82rem !important;
 }
+
+/* ── Empty library: upstream gives the trending row and empty message no side padding ── */
+[data-home-screen="no-entries"] > .text-center,
+[data-home-screen="no-entries"] > h3,
+[data-home-screen="no-entries"] > .UI-Carousel__root {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+/* Same carousel track fix as discover.css */
+[data-home-screen="no-entries"] .UI-Carousel__innerContent {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+[data-home-screen="no-entries"] .UI-Carousel__innerContent > [data-media-entry-card-container="true"] {
+    margin-left: 0 !important;
+    margin-right: 1rem !important;
+}

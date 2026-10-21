@@ -97,6 +97,21 @@
     right: 1.25rem !important;
 }
 
+/* ── Dims the page while the floating menu is open; sits below the bottom nav ── */
+#__seanime_menu_backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 8990;
+    background: rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+#__seanime_menu_backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* ── Wrench button ── */
 #__seanime_wrench_btn {
     position: fixed;

@@ -1133,12 +1133,16 @@
             var reset  = document.getElementById('__seanime_reset_btn');
             if (wrench) { wrench.classList.add('wrench-visible'); updateWrenchPosition(); }
             if (reset)  { reset.classList.add('reset-visible'); }
+            var backdrop = document.getElementById('__seanime_menu_backdrop');
+            if (backdrop) backdrop.classList.add('visible');
         }
         function hideWrench() {
             var wrench = document.getElementById('__seanime_wrench_btn');
             var reset  = document.getElementById('__seanime_reset_btn');
             if (wrench) wrench.classList.remove('wrench-visible');
             if (reset)  reset.classList.remove('reset-visible');
+            var backdrop = document.getElementById('__seanime_menu_backdrop');
+            if (backdrop) backdrop.classList.remove('visible');
         }
 
         // ═════════════════════════════════════════════════════════════
@@ -1176,6 +1180,12 @@
                 floatMenu.id = 'android-floating-menu';
                 floatMenu.style.cssText = 'position:fixed;z-index:999998;display:none;flex-direction:column;align-items:center;gap:12px;width:52px;';
                 document.body.appendChild(floatMenu);
+            }
+
+            if (!document.getElementById('__seanime_menu_backdrop')) {
+                var backdrop = document.createElement('div');
+                backdrop.id = '__seanime_menu_backdrop';
+                document.body.appendChild(backdrop);
             }
 
             if (!document.getElementById('__seanime_float_item_styles')) {

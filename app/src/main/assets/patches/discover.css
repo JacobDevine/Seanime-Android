@@ -6,8 +6,17 @@
         flex-basis: 160px !important;
         min-width:  160px !important;
         max-width:  160px !important;
-        margin-left:  0.4rem !important;
-        margin-right: 0.4rem !important;
+        margin-left:  0 !important;
+        margin-right: 0.8rem !important;
+    }
+
+    /* ── Carousel track ──
+       Upstream shifts the track (-ml-8 px-6) for cards with left padding, but the cards use
+       mx-2, so the carousel stops ~30px short and clips the leftmost card. Remove the shift. */
+    html[data-seanime-route^="/discover"] .UI-Carousel__innerContent {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
     /* ── Title text ── */
