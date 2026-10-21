@@ -246,6 +246,22 @@ class MainActivity : Activity() {
         root.addView(loadingView, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
 
+        // The window is drawn edge to edge, so Android doesn't shrink it for the keyboard.
+        // Shrink it here instead; the WebView then scrolls the focused field into view.
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val keyboard = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.ime()).bottom
+            } else {
+                @Suppress("DEPRECATION")
+                insets.systemWindowInsetBottom.takeIf { it > insets.stableInsetBottom } ?: 0
+            }
+            view.setPadding(0, 0, 0, keyboard)
+            webView.evaluateJavascript(
+                "document.documentElement.toggleAttribute('data-seanime-keyboard', ${keyboard > 0})", null
+            )
+            insets
+        }
+
         Performance.init(this, webView)
 
         webView.setOnApplyWindowInsetsListener { view, insets ->
