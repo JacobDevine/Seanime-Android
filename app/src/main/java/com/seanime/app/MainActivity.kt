@@ -32,6 +32,7 @@ class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private lateinit var pipManager: PiPManager
+    private lateinit var folderPicker: FolderPicker
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
 
@@ -223,11 +224,22 @@ class MainActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         AppUpdater.onRequestPermissionsResult(requestCode, grantResults)
+        folderPicker.onRequestPermissionsResult(requestCode)
         if (requestCode == REQUEST_CODE_NOTIFICATIONS &&
             grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
         ) {
             sendBroadcast(Intent(SeanimeService.ACTION_NOTIFICATION_PERMISSION_GRANTED))
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        folderPicker.onResume()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        folderPicker.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onTrimMemory(level: Int) {
@@ -275,6 +287,9 @@ class MainActivity : Activity() {
 
         pipManager = PiPManager(this, webView)
         pipManager.registerBridge()
+
+        folderPicker = FolderPicker(this, webView)
+        folderPicker.registerBridge()
 
         AppUpdater.init(this, webView)
 

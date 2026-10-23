@@ -31,6 +31,7 @@ object WebPatches {
         "settings-menu.js",
         "settings-action-bar.js",
         "torrent.js",
+        "folder-picker.js",
         "discover.css",
         "discover.js",
         "search.js",
