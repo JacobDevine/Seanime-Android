@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.webkit.*
 import android.widget.Button
 import android.widget.FrameLayout
@@ -70,6 +71,12 @@ class MainActivity : Activity() {
 
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        // The status bar is hidden, and by default Android then keeps the window out of the
+        // camera cutout strip, leaving a black band at the top. Draw into it instead.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
@@ -255,7 +262,9 @@ class MainActivity : Activity() {
                 @Suppress("DEPRECATION")
                 insets.systemWindowInsetBottom.takeIf { it > insets.stableInsetBottom } ?: 0
             }
-            view.setPadding(0, 0, 0, keyboard)
+            // In landscape the cutout is on a side; keep the page out of it there
+            val cutout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) insets.displayCutout else null
+            view.setPadding(cutout?.safeInsetLeft ?: 0, 0, cutout?.safeInsetRight ?: 0, keyboard)
             webView.evaluateJavascript(
                 "document.documentElement.toggleAttribute('data-seanime-keyboard', ${keyboard > 0})", null
             )
