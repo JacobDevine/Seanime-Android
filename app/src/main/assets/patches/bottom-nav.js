@@ -236,6 +236,16 @@
             }
             return labels;
         }
+        // Same for links. Upstream's labels can differ from ours ("My lists" vs
+        // "My Lists"), so links are matched by href as well as by label.
+        function getNavHrefsSet() {
+            var hrefs = new Set();
+            for (var i = 0; i < NAV_ITEMS.length; i++) {
+                var it = NAV_ITEMS[i];
+                if (it.placement === 'nav' && it.href) hrefs.add(it.href);
+            }
+            return hrefs;
+        }
 
         // ─────────────────────────────────────────────────────────────
         // SIDEBAR SNAPSHOT (with automatic removal of items already in nav)
@@ -243,7 +253,9 @@
         function snapshotSidebarItems() {
             var items = [];
             var existing = {};
+            var existingHrefs = {};
             var navLabels = getNavLabelsSet();
+            var navHrefs = getNavHrefsSet();
 
             // First, collect all sidebar items with duplicate prevention
             document.querySelectorAll('.UI-AppSidebar__sidebar a[data-vertical-menu-item-link]').forEach(function(a) {
@@ -252,9 +264,10 @@
                 var href  = a.getAttribute('href');
                 var isCurrent = a.getAttribute('data-current') === 'true';
                 var svgEl = a.querySelector('svg');
-                if (label && href && !existing[label] && !navLabels.has(label)) {
+                if (label && href && !existing[label] && !existingHrefs[href] && !navLabels.has(label) && !navHrefs.has(href)) {
                     items.push({ type: 'link', label: label, href: href, svg: svgEl ? svgEl.outerHTML : '', isCurrent: isCurrent });
                     existing[label] = true;
+                    existingHrefs[href] = true;
                 }
             });
             document.querySelectorAll('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button]').forEach(function(btn) {
@@ -269,7 +282,7 @@
 
             // Then add nav items that are in float placement, but only if not already in nav (should not happen) and not duplicate label
             NAV_ITEMS.filter(function(it) { return it.placement === 'float' && !it.isMenu; }).forEach(function(navIt) {
-                if (!existing[navIt.label] && !navLabels.has(navIt.label)) {
+                if (!existing[navIt.label] && !navLabels.has(navIt.label) && !(navIt.href && existingHrefs[navIt.href])) {
                     items.push(navItemToFloatPill(navIt));
                     existing[navIt.label] = true;
                 }
@@ -539,6 +552,10 @@
         function updateActiveState() {
             var nav = document.getElementById('__seanime_bottom_nav');
             if (!nav) return;
+            nav.querySelectorAll('[data-active]').forEach(function(el) {
+                var item = getItem(el.getAttribute('data-nav-id'));
+                el.setAttribute('data-active', item && isActive(item) ? 'true' : 'false');
+            });
             if (menuOpen) closeMenu();
         }
 
@@ -701,7 +718,7 @@
                     el = document.createElement('a');
                     el.href = item.href || '#';
                     el.setAttribute('data-nav-id', item.id);
-                    el.setAttribute('data-active', 'false');
+                    el.setAttribute('data-active', isActive(item) ? 'true' : 'false');
                     el.innerHTML = item.svg + '<span>' + item.label + '</span>';
                     var svgEl = el.querySelector('svg');
                     if (svgEl) {
@@ -725,7 +742,7 @@
                     el = document.createElement('a');
                     el.href = item.href;
                     el.setAttribute('data-nav-id', item.id);
-                    el.setAttribute('data-active', 'false');
+                    el.setAttribute('data-active', isActive(item) ? 'true' : 'false');
                     el.innerHTML = item.svg + '<span>' + item.label + '</span>';
 
                     el.addEventListener('click', function(e) {
