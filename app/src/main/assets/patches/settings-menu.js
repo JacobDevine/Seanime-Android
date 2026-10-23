@@ -34,7 +34,8 @@
     }
 
     function cleanupDrawer() {
-        ['__seanime_drawer', '__seanime_backdrop', '__seanime_drawer_tab'].forEach(function(id) {
+        openSectionDrawer = null;
+        ['__seanime_drawer', '__seanime_backdrop', '__seanime_section_btn'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.remove();
         });
@@ -50,7 +51,7 @@
 
     function buildDrawer() {
         if (!isSettingsPage()) return;
-        if (document.getElementById('__seanime_drawer_tab')) return;
+        if (document.getElementById('__seanime_drawer')) return;
 
         var triggers = document.querySelectorAll('.UI-Tabs__trigger');
         if (triggers.length === 0) return;
@@ -205,52 +206,75 @@
         document.body.appendChild(drawer);
         tagDonateButtons([document]);
 
-        var drawerW = Math.min(window.innerWidth * 0.75, 300);
-        var isOpen = false;
-
-        var tab = document.createElement('button');
-        tab.id = '__seanime_drawer_tab';
-        tab.dataset.seanimeOwned = 'true';
-        tab.style.cssText = [
-            'position:fixed','left:0','top:50%','transform:translateY(-50%)',
-            'z-index:10001',  // increased from 1000
-            'width:20px','height:56px',
-            'background:rgba(255,255,255,0.07)',
-            'backdrop-filter:blur(12px)','-webkit-backdrop-filter:blur(12px)',
-            'border:1px solid rgba(255,255,255,0.10)','border-left:none',
-            'border-radius:0 8px 8px 0','color:rgba(255,255,255,0.6)',
-            'display:flex','align-items:center','justify-content:center',
-            'cursor:pointer','padding:0',
-            'transition:left 0.28s cubic-bezier(0.4,0,0.2,1)','box-sizing:border-box'
-        ].join(';');
-
-        function setArrow(pointRight) {
-            tab.innerHTML = pointRight
-                ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
-                : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
-        }
-        setArrow(true);
-
         function openDrawer() {
-            isOpen = true;
             drawer.style.transform = 'translateX(0)';
             backdrop.style.opacity = '1';
             backdrop.style.pointerEvents = 'auto';
-            tab.style.left = drawerW + 'px';
-            setArrow(false);
         }
         function closeDrawer() {
-            isOpen = false;
             drawer.style.transform = 'translateX(-100%)';
             backdrop.style.opacity = '0';
             backdrop.style.pointerEvents = 'none';
-            tab.style.left = '0';
-            setArrow(true);
         }
+        openSectionDrawer = openDrawer;
 
-        tab.addEventListener('click', function() { if (isOpen) closeDrawer(); else openDrawer(); });
+        drawer.querySelectorAll('[data-drawer-for]').forEach(function(item) {
+            item.addEventListener('click', function() {
+                closeDrawer();
+                setTimeout(updateSectionButton, 100);
+            });
+        });
         backdrop.addEventListener('click', closeDrawer);
-        document.body.appendChild(tab);
+        ensureSectionButton();
+    }
+
+    // A button at the top of the page names the current section and opens the drawer.
+    // It used to be a tab on the screen edge, which sat on top of the settings cards.
+    var openSectionDrawer = null;
+
+    function ensureSectionButton() {
+        if (!isSettingsPage() || !openSectionDrawer) return;
+        var tabs = document.querySelector('[data-settings-page-tabs]');
+        if (!tabs) return;
+        var btn = document.getElementById('__seanime_section_btn');
+        if (btn && btn.nextElementSibling === tabs) return;
+        if (btn) btn.remove();
+
+        btn = document.createElement('button');
+        btn.id = '__seanime_section_btn';
+        btn.dataset.seanimeOwned = 'true';
+        btn.style.cssText = [
+            'display:inline-flex','align-items:center','gap:0.6rem',
+            'padding:0.55rem 0.9rem 0.55rem 1rem','border-radius:9999px',
+            'background:rgba(255,255,255,0.04)','border:1px solid rgba(255,255,255,0.12)',
+            'color:white','font-size:0.95rem','font-weight:500','cursor:pointer',
+            '-webkit-tap-highlight-color:transparent'
+        ].join(';');
+        btn.addEventListener('click', function() { if (openSectionDrawer) openSectionDrawer(); });
+        tabs.parentElement.insertBefore(btn, tabs);
+        updateSectionButton();
+    }
+
+    function updateSectionButton() {
+        var btn = document.getElementById('__seanime_section_btn');
+        var active = document.querySelector('.UI-Tabs__trigger[data-state="active"]');
+        if (!btn || !active) return;
+        var label = active.textContent.trim();
+        if (btn.dataset.label === label) return;
+        btn.dataset.label = label;
+        btn.innerHTML = '';
+        var svg = active.querySelector('svg');
+        if (svg) {
+            svg = svg.cloneNode(true);
+            svg.setAttribute('class', '');
+            svg.style.cssText = 'width:18px;height:18px;flex-shrink:0;';
+            btn.appendChild(svg);
+        }
+        var text = document.createElement('span');
+        text.textContent = label;
+        btn.appendChild(text);
+        btn.insertAdjacentHTML('beforeend',
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;flex-shrink:0"><polyline points="6 9 12 15 18 9"></polyline></svg>');
     }
 
     tagDonateButtons([document]);
@@ -258,6 +282,8 @@
 
     window.__seanimePage.onDomChange(function(added) {
         if (added.length) { tagDonateButtons(added); buildDrawer(); }
+        ensureSectionButton();
+        updateSectionButton();
     });
 
     window.__seanimePage.onRouteChange(function() {
