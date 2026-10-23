@@ -37,7 +37,11 @@ The mobile layout comes from JS and CSS files in `app/src/main/assets/patches/`.
 
 ## Building the binary
 
-Follow these steps in order.
+The quick way is `scripts/build-server.sh <version>` (e.g. `3.10.4`). It needs Go, Node and NDK 26.3.11579264, runs every step below for both arm64 and armeabi-v7a, and installs the results into `app/src/main/jniLibs/`.
+
+You can also let GitHub build it: open **Actions → Build server → Run workflow** and enter the version. When it finishes, download `jniLibs-s<version>` from the run page and unzip it into `app/src/main/jniLibs/`. The run also has a debug APK with the server included, for quick testing. The workflow also runs on pull requests that change the build script.
+
+To do it by hand, follow these steps in order.
 
 ### 1. Setting up
 
@@ -220,7 +224,7 @@ seanimeReleaseKeyPassword=...
 Without these, `./gradlew assembleRelease` produces an unsigned APK.
 
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
-2. Build both server binaries (see above) and run `./gradlew clean assembleRelease`. Release builds are split by ABI, so this produces two APKs in `app/build/outputs/apk/release/`, each carrying only its own server:
+2. Build both server binaries (see above, or download them from the Build server workflow) and run `./gradlew clean assembleRelease`. Release builds are split by ABI, so this produces two APKs in `app/build/outputs/apk/release/`, each carrying only its own server:
    - `app-arm64-v8a-release.apk` (nearly all phones)
    - `app-armeabi-v7a-release.apk` (older 32-bit phones)
 3. Rename them to `seanime_v<app version>-s<server version>-<abi>.apk`, e.g. `seanime_v0.8.0a-s3.10.4-arm64-v8a.apk` and `seanime_v0.8.0a-s3.10.4-armeabi-v7a.apk`. The in-app updater reads the server version from the `-s` part and picks the APK whose name ends in the device's ABI.
