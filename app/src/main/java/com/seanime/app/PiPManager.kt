@@ -12,11 +12,11 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
 
     inner class PiPBridge {
         @JavascriptInterface
-        fun enterPiP() {
+        fun enterPiP(videoWidth: Int, videoHeight: Int) {
             activity.runOnUiThread {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val params = PictureInPictureParams.Builder()
-                        .setAspectRatio(Rational(16, 9))
+                        .setAspectRatio(aspectRatio(videoWidth, videoHeight))
                         .build()
                     activity.enterPictureInPictureMode(params)
                 }
@@ -31,6 +31,17 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                 }
                 activity.startActivity(intent)
             }
+        }
+    }
+
+    // Match the window to the video. Android rejects ratios outside 1:2.39 to 2.39:1.
+    private fun aspectRatio(width: Int, height: Int): Rational {
+        if (width <= 0 || height <= 0) return Rational(16, 9)
+        val ratio = width.toFloat() / height
+        return when {
+            ratio > 2.39f -> Rational(239, 100)
+            ratio < 1 / 2.39f -> Rational(100, 239)
+            else -> Rational(width, height)
         }
     }
 

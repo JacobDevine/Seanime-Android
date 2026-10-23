@@ -1,15 +1,12 @@
 // Run by PiPManager when the activity enters picture-in-picture.
+// Shows only the video; pip-exit.js puts everything back.
 (function() {
     window.__androidPiPActive = true;
-
-    const pill = document.getElementById('android-floating-pill');
-    const menu = document.getElementById('android-floating-menu');
-    if (pill) pill.style.setProperty('display', 'none', 'important');
-    if (menu) menu.style.setProperty('display', 'none', 'important');
+    window.__seanimePiPScrollY = window.scrollY;
 
     let style = document.getElementById('pip-overlay-style') || document.createElement('style');
     style.id = 'pip-overlay-style';
-    style.innerHTML = `
+    style.textContent = `
         html, body {
             width: 100% !important;
             height: 100% !important;
@@ -29,7 +26,7 @@
             left: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            object-fit: fill !important;
+            object-fit: contain !important;
             background: black !important;
             z-index: 9999999 !important;
             margin: 0 !important;
@@ -40,16 +37,11 @@
     `;
     document.head.appendChild(style);
 
-    // Move video directly to body
+    // Move the video directly to body so hiding the rest of the page doesn't hide it
     const video = document.querySelector('video');
-    if (video) {
-        // Store original position
+    if (video && video.parentElement !== document.body) {
         video.__pipOriginalParent = video.parentElement;
         video.__pipOriginalNextSibling = video.nextSibling;
-
-        // Move directly to body
-        if (video.parentElement !== document.body) {
-            document.body.appendChild(video);
-        }
+        document.body.appendChild(video);
     }
 })();
