@@ -33,6 +33,7 @@ object WebPatches {
         "torrent.js",
         "discover.css",
         "discover.js",
+        "search.js",
         "app-updater.js",
     )
 
