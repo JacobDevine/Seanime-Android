@@ -17,7 +17,8 @@
                     if (window.__androidPiPActive) {
                         AndroidBridge.exitPiP();
                     } else {
-                        AndroidBridge.enterPiP();
+                        const video = document.querySelector('video');
+                        AndroidBridge.enterPiP(video ? video.videoWidth : 0, video ? video.videoHeight : 0);
                     }
                 }, true);
             }

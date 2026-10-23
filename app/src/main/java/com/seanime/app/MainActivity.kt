@@ -273,34 +273,6 @@ class MainActivity : Activity() {
 
         Performance.init(this, webView)
 
-        webView.setOnApplyWindowInsetsListener { view, insets ->
-            val top: Int
-            val bottom: Int
-            val left: Int
-            val right: Int
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val systemInsets = insets.getInsets(WindowInsets.Type.systemBars())
-                top = systemInsets.top
-                bottom = systemInsets.bottom
-                left = systemInsets.left
-                right = systemInsets.right
-            } else {
-                @Suppress("DEPRECATION")
-                top = insets.systemWindowInsetTop
-                @Suppress("DEPRECATION")
-                bottom = insets.systemWindowInsetBottom
-                @Suppress("DEPRECATION")
-                left = insets.systemWindowInsetLeft
-                @Suppress("DEPRECATION")
-                right = insets.systemWindowInsetRight
-            }
-
-            val js = "window.__seanimeInsets = { top: $top, bottom: $bottom, left: $left, right: $right };"
-            view.post { (view as? WebView)?.evaluateJavascript(js, null) }
-            insets
-        }
-
         pipManager = PiPManager(this, webView)
         pipManager.registerBridge()
 
@@ -396,18 +368,7 @@ class MainActivity : Activity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         pipManager.onPiPModeChanged(isInPictureInPictureMode)
 
-        if (!isInPictureInPictureMode) {
-            webView.postDelayed({
-                webView.setInitialScale(100)
-                webView.postDelayed({
-                    webView.evaluateJavascript(
-                        "(function(){document.documentElement.style.zoom='1';document.body.style.zoom='1';})();",
-                        null
-                    )
-                }, 50)
-                setSystemBarsHidden(true)
-            }, 100)
-        }
+        if (!isInPictureInPictureMode) setSystemBarsHidden(true)
     }
 
     private fun setSystemBarsHidden(hide: Boolean) {
