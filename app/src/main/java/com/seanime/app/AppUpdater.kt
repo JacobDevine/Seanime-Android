@@ -27,6 +27,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -38,6 +39,7 @@ object AppUpdater {
 
     private const val RELEASES_URL = "https://api.github.com/repos/JacobDevine/Seanime-Android/releases"
     private const val PERMISSION_REQUEST_CODE = 1001
+    private val KNOWN_ABIS = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 
     private lateinit var activity: Activity
     private lateinit var webView: WebView
@@ -183,20 +185,14 @@ object AppUpdater {
 
                 val latestRelease = releasesArray.getJSONObject(0)
 
-                // 2. Find APK asset and extract its version
+                // 2. Find the APK for this device and extract its version
                 val assets = latestRelease.getJSONArray("assets")
-                var apkUrl: String? = null
-                var apkVersion: String? = null
-
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.getString("name")
-                    if (name.endsWith(".apk")) {
-                        apkUrl = asset.getString("browser_download_url")
-                        apkVersion = extractVersionFromApkName(name)
-                        break
-                    }
-                }
+                val apks = (0 until assets.length())
+                    .map { assets.getJSONObject(it) }
+                    .filter { it.getString("name").endsWith(".apk") }
+                val apk = pickApkForDevice(apks)
+                val apkUrl = apk?.getString("browser_download_url")
+                val apkVersion = apk?.let { extractVersionFromApkName(it.getString("name")) }
 
                 if (apkUrl == null) {
                     onError("No APK found in release")
@@ -238,6 +234,18 @@ object AppUpdater {
                 onError(e.message ?: "Network error")
             }
         }
+    }
+
+    /**
+     * Releases have one APK per ABI, e.g. "seanime_v0.8.0a-s3.10.4-arm64-v8a.apk".
+     * Take the one for the device's preferred ABI; older releases have a single APK with
+     * no ABI in the name.
+     */
+    private fun pickApkForDevice(apks: List<JSONObject>): JSONObject? {
+        for (abi in Build.SUPPORTED_ABIS) {
+            apks.firstOrNull { it.getString("name").endsWith("-$abi.apk") }?.let { return it }
+        }
+        return apks.firstOrNull { asset -> KNOWN_ABIS.none { asset.getString("name").endsWith("-$it.apk") } }
     }
 
     /** Extract version from APK filename (e.g., "seanime_v0.1.0a-s3.5.2.apk" → "3.5.2") */

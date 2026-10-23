@@ -220,9 +220,11 @@ seanimeReleaseKeyPassword=...
 Without these, `./gradlew assembleRelease` produces an unsigned APK.
 
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
-2. Build both server binaries (see above) and run `./gradlew clean assembleRelease`.
-3. Rename `app/build/outputs/apk/release/app-release.apk` to `seanime_v<app version>-s<server version>.apk`, e.g. `seanime_v0.7.0a-s3.10.4.apk`. The in-app updater reads the server version from the `-s` part of the file name.
-4. Publish it as a GitHub release tagged `v<app version>`.
+2. Build both server binaries (see above) and run `./gradlew clean assembleRelease`. Release builds are split by ABI, so this produces two APKs in `app/build/outputs/apk/release/`, each carrying only its own server:
+   - `app-arm64-v8a-release.apk` (nearly all phones)
+   - `app-armeabi-v7a-release.apk` (older 32-bit phones)
+3. Rename them to `seanime_v<app version>-s<server version>-<abi>.apk`, e.g. `seanime_v0.8.0a-s3.10.4-arm64-v8a.apk` and `seanime_v0.8.0a-s3.10.4-armeabi-v7a.apk`. The in-app updater reads the server version from the `-s` part and picks the APK whose name ends in the device's ABI.
+4. Publish a GitHub release tagged `v<app version>` and **upload the arm64 APK first**. App versions up to v0.7.0a take the first `.apk` of a release, so this keeps them updating to the right file.
 
 ---
 

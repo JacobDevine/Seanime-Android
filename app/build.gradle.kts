@@ -43,6 +43,17 @@ android {
         }
     }
 
+    // Release builds get one APK per ABI, so each carries only its own server binary
+    // (~80MB each). Debug builds stay a single APK with both.
+    splits {
+        abi {
+            isEnable = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
